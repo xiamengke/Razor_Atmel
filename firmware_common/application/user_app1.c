@@ -136,53 +136,54 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-  static u32    u32Counter=0;
-  static u32    u32ValueTime=500;
-  static u32    u32Counter1=0;
-  static u32     u32Counter2;
- 
-  static bool bLightIsOn = FALSE;
+  static u8     u8Bright;
+  static u8     u8Time=0;
+  static u8     u8Value=0;
+  static u8    u8Counter=0;
   
-  u32Counter++; /*increase 1 per ms*/
-  u32Counter1++;
-  if(u32ValueTime>=500)
+  u8Time++;
+  u8Counter++;
+  if(u8Value>=10)
   {
-    u32Counter2=1;
+    u8Bright=1;
   }
-  else if(u32ValueTime<=10)
+  else if(u8Value == 0)
   {
-    u32Counter2=0;
+    u8Bright=0;
   }
-  if(u32Counter == u32ValueTime)
+  if(u8Time == 100)
   {
-    u32Counter=0;
-    if(bLightIsOn)
-    {
-      HEARTBEAT_OFF();
-      bLightIsOn = FALSE;
-    }
+    u8Time=0;
+    if(u8Bright == 1)
+      u8Value--;
     else
     {
-      HEARTBEAT_ON();
-      bLightIsOn = TRUE;
-      
-    }
-    if(u32Counter1 >= COUNTER_LIMIT_MS)
-      {
-        u32Counter1=0;
-        if(u32Counter2 == 1)
-        {
-          u32ValueTime=u32ValueTime/2;
-        }
-        else
-        {
-          u32ValueTime=u32ValueTime*2;
-        }
-       
-      }
-    
-    
+      u8Value++;
+    } 
   }
+  switch(u8Counter)
+  {
+      case  0:
+            HEARTBEAT_OFF();
+            break;
+      case  10:
+            HEARTBEAT_ON();
+            break;
+      default:
+            if (u8Counter<u8Value)
+            {
+             HEARTBEAT_ON();
+            }
+            if(u8Counter>=u8Value)
+            {
+             HEARTBEAT_OFF();
+            }
+            if(u8Counter>10)
+            {
+              u8Counter=0;
+            }
+  }
+
 
 
 } /* end UserApp1SM_Idle() */
