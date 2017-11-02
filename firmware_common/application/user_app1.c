@@ -87,7 +87,14 @@ Promises:
 */
 void UserApp1Initialize(void)
 {
- 
+ LedOff(WHITE);
+  LedOff(PURPLE);
+  LedOff(BLUE);
+  LedOff(CYAN);
+  LedOff(GREEN);
+  LedOff(YELLOW);
+  LedOff(ORANGE);
+  LedOn(RED);
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -136,6 +143,120 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
+  static u8 u8Sign=0; /*The sign of worng Password*/
+  static u8 u8Sign1=0; /*The sign of Re-entering Password*/
+  static u8 u8Sign2=0; /*The sign of Reset Password*/
+  static u8 u8Length=4; /*The Length of Password*/
+  static u8 u8Counter=0;
+  static u32 u32aPassword[]={0,1,2,1};
+  
+  if(u8Sign2==0)
+  {
+    if( WasButtonPressed(BUTTON0) )
+    {
+      ButtonAcknowledge(BUTTON0);
+      if(BUTTON0!=u32aPassword[u8Counter])
+      {
+        u8Sign=1;
+      }
+      u8Counter++;
+    }
+    /*BUTTON0*/
+    
+    if( WasButtonPressed(BUTTON1) )
+    {
+      ButtonAcknowledge(BUTTON1);
+      if(BUTTON1!=u32aPassword[u8Counter])
+      {
+        u8Sign=1;
+      }
+      u8Counter++;
+    }
+    /*BUTTON1*/
+    
+    if( WasButtonPressed(BUTTON2) )
+    {
+      ButtonAcknowledge(BUTTON2);
+      if(BUTTON2!=u32aPassword[u8Counter])
+      {
+        u8Sign=1;
+      }
+      u8Counter++;
+    }
+    /*BUTTON2*/
+    
+    if( WasButtonPressed(BUTTON3)  )
+    {
+      ButtonAcknowledge(BUTTON3);
+      if(u8Sign1==0) 
+      {
+        u8Sign1=1; 
+        LedOff(RED);
+        if(u8Sign==0 && u8Counter==u8Length)
+        {
+          LedBlink(GREEN,LED_2HZ); /*Right*/
+        }
+        else
+        {
+          LedBlink(RED,LED_2HZ); /*Wrong*/
+        }
+      }
+      else  /*Re-enter password*/
+      {
+        u8Sign=0;
+        u8Sign1=0;
+        u8Counter=0;
+        LedOn(RED);  /*Locked*/
+        LedOff(GREEN);
+      }
+    }
+    /*BUTTON3*/
+    
+  }
+  
+  
+  if(IsButtonHeld(BUTTON3,3000))
+  {
+    u8Length=0;
+    u8Counter=0;
+    LedBlink(RED,LED_1HZ);
+    LedBlink(GREEN,LED_1HZ);
+    u8Sign2=1;
+  }
+  if(u8Sign2==1) /*Reset Password*/
+  {
+    if( WasButtonPressed(BUTTON0) )
+    {
+      ButtonAcknowledge(BUTTON0);
+      u32aPassword[u8Counter]=BUTTON0;
+      u8Counter++;
+      u8Length++;
+    }
+    if( WasButtonPressed(BUTTON1) )
+    {
+      ButtonAcknowledge(BUTTON1);
+      u32aPassword[u8Counter]=BUTTON1;
+      u8Counter++;
+      u8Length++;
+    }
+    if( WasButtonPressed(BUTTON2) )
+    {
+      ButtonAcknowledge(BUTTON2);
+      u32aPassword[u8Counter]=BUTTON2;
+      u8Counter++;
+      u8Length++;
+    }
+    if( WasButtonPressed(BUTTON3) ) /*The end of Resetting Password*/
+    {
+      ButtonAcknowledge(BUTTON3);
+      LedOff(GREEN);
+      LedOn(RED);
+      u8Counter=0;
+      u8Sign=0;
+      u8Sign1=0;
+      u8Sign2=0;
+    }
+  }
 
 } /* end UserApp1SM_Idle() */
     
