@@ -53,6 +53,9 @@ extern volatile u32 G_u32SystemTime1ms;                /* From board-specific so
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 
 
+extern u8 G_au8DebugScanfBuffer[];  /* From debug.c */
+extern u8 G_u8DebugScanfCharCount;  /* From debug.c */
+
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "UserApp1_" and be declared as static.
@@ -136,6 +139,50 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
+  static u8  u8aName[] = "Xiamengke";
+  static u8  u8NameCount = 0;
+  static u8  u8CharCount = 0;
+  static u8  u8Number = 0;
+  static u8  u8Sign = 0;
+  static u8  u8Count = 0;
+  static u32  u32Time = 0;
+  static u8  u8NumNameMessage[] = "\n\rYour name in buffer: ";
+  
+  if(u8CharCount<=G_u8DebugScanfCharCount-1 )
+  {
+    if(u8NameCount == 5)
+    {
+      u8Number++;
+      u8Sign=1;
+      u8NameCount=0;
+    }
+    if(G_au8DebugScanfBuffer[u8CharCount] == u8aName[u8NameCount])
+    {
+      u8NameCount++;
+      u32Time=0;
+    }
+    else
+    {
+      u8NameCount=0;
+      u32Time=0;
+    }
+   u8CharCount++; 
+  }
+  if(u8Sign==1)
+  {
+    u32Time++;
+  }
+  if(u32Time==3000)
+  {
+    u32Time=0;
+    u8Sign=0;
+    u8NameCount=0;
+    u8CharCount=0;
+    u8Count = DebugScanf(G_au8DebugScanfBuffer);
+    DebugPrintf(u8NumNameMessage);
+    DebugPrintNumber(u8Number);
+    DebugLineFeed();
+  }
 
 } /* end UserApp1SM_Idle() */
     
