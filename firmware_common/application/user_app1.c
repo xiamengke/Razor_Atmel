@@ -51,7 +51,8 @@ extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
-
+extern u8 G_au8DebugScanfBuffer[];                      /* From debug.c */
+extern u8 G_u8DebugScanfCharCount;                      /* From debug.c */
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
@@ -59,7 +60,12 @@ Variable names shall start with "UserApp1_" and be declared as static.
 ***********************************************************************************************************************/
 static fnCode_type UserApp1_StateMachine;            /* The state machine function pointer */
 //static u32 UserApp1_u32Timeout;                      /* Timeout counter used across states */
-
+static u8 UserApp_au8Menu1[] = "B0:Name  B1:User";
+static u8 UserApp_au8Menu2[] = "B3:Menu";
+static u8 UserApp_CursorPosition;
+static u8 UserApp_CursorPosition1=1;
+static u8 UserApp_CursorPosition2=2;
+static u16 au16Tone[]={0,523,578,628,698,784,880,988 };
 
 /**********************************************************************************************************************
 Function Definitions
@@ -87,7 +93,10 @@ Promises:
 */
 void UserApp1Initialize(void)
 {
- 
+  LCDCommand(LCD_CLEAR_CMD);
+  LCDMessage(LINE1_START_ADDR, UserApp_au8Menu1);
+  LCDMessage(LINE2_START_ADDR, UserApp_au8Menu2);
+  
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -136,6 +145,236 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
+  static u32 u32Counter=0;
+  static u8  u8Sign = 0;
+  static u8  u8Sign1 = 0;
+  static u8 u8Tone = 0;
+  
+  static u8 u8CharCount = 0;
+  static u32 u32Number1 = 0;
+  static u32 u32Number2 = 0;
+  static bool bLine1 = TRUE;
+  static u8 u8Print = 0;
+  static u8 u8Menu = 0;
+  static u8 au8Message[]="Please input:";
+  
+  
+  u32Counter++; 
+  if(u8Menu==0)
+  {
+    if( WasButtonPressed(BUTTON0) )
+    {
+      ButtonAcknowledge(BUTTON0);
+      u8Menu=1;
+    }
+    if( WasButtonPressed(BUTTON1) )
+    {
+      ButtonAcknowledge(BUTTON1);
+      u8Menu=2;
+    }
+  }
+  if( WasButtonPressed(BUTTON3) )
+  {
+    ButtonAcknowledge(BUTTON3);
+    LCDCommand(LCD_CLEAR_CMD);
+    LCDMessage(LINE1_START_ADDR, UserApp_au8Menu1);
+    LCDMessage(LINE2_START_ADDR, UserApp_au8Menu2);
+    PWMAudioOff(BUZZER1);
+    LedOff(RED);
+    LedOff(BLUE);
+    LedOff(GREEN);
+    u8Print = 0;
+    u8Menu=0;
+    u8Sign = 0;
+    u8Sign1 = 0;
+    u8Tone = 0; 
+    u8CharCount = 0;
+    u32Number1 = 0;
+    u32Number2 = 0;
+  }
+  
+  if(u8Menu==1)
+  {
+    if( WasButtonPressed(BUTTON1) )
+    {
+      ButtonAcknowledge(BUTTON1);
+      PWMAudioOff(BUZZER1);
+      u8Sign1=1;
+      u8Sign=0;
+      
+    }
+    if( WasButtonPressed(BUTTON0) )
+    {
+      ButtonAcknowledge(BUTTON0);
+      PWMAudioOff(BUZZER1);
+      u8Sign1=2;
+      u8Sign=0;
+      
+    }
+    
+    if(u32Counter >= 500 && u8Sign == 0)
+    {
+      u32Counter=0;
+      PWMAudioSetFrequency(BUZZER1, au16Tone[u8Tone]);
+      PWMAudioOn(BUZZER1);
+      LCDCommand(LCD_CLEAR_CMD);
+      LCDMessage(UserApp_CursorPosition, "X");
+      LCDMessage(UserApp_CursorPosition1, "M");
+      LCDMessage(UserApp_CursorPosition2, "K");
+      
+      
+      if(u8Sign1==1)
+      {
+        LedOff(RED);
+        LedOff(BLUE);
+        LedOn(GREEN);
+        u8Tone++;
+        if(UserApp_CursorPosition2 == LINE2_END_ADDR)
+        {
+          u8Sign=1;
+        }
+        if(UserApp_CursorPosition == LINE1_END_ADDR)
+        {
+          UserApp_CursorPosition = LINE2_START_ADDR;
+        }
+        else
+        {
+          UserApp_CursorPosition++;
+        }
+        
+        if(UserApp_CursorPosition1 == LINE1_END_ADDR)
+        {
+          UserApp_CursorPosition1 = LINE2_START_ADDR;
+        }
+        else
+        {
+          UserApp_CursorPosition1++;
+        }
+        
+        if(UserApp_CursorPosition2 == LINE1_END_ADDR)
+        {
+          UserApp_CursorPosition2 = LINE2_START_ADDR;
+        }
+        else
+        {
+          UserApp_CursorPosition2++;
+        }
+      }
+      
+      if(u8Sign1==2)
+      {
+        LedOff(RED);
+        LedOn(BLUE);
+        LedOff(GREEN);
+        u8Tone--;
+        if(UserApp_CursorPosition == LINE1_START_ADDR)
+        {
+          u8Sign=1;
+        }
+        if(UserApp_CursorPosition2 == LINE2_START_ADDR)
+        {
+          UserApp_CursorPosition2 = LINE1_END_ADDR;
+        }
+        else
+        {
+          UserApp_CursorPosition2--;
+        }
+        
+        if(UserApp_CursorPosition1 == LINE2_START_ADDR)
+        {
+          UserApp_CursorPosition1 = LINE1_END_ADDR;
+        }
+        else
+        {
+          UserApp_CursorPosition1--;
+        }
+        
+        if(UserApp_CursorPosition == LINE2_START_ADDR)
+        {
+          UserApp_CursorPosition = LINE1_END_ADDR;
+        }
+        else
+        {
+          UserApp_CursorPosition--;
+        }
+        
+      }
+    }
+    
+    if(u8Tone>8 && u8Sign1==1)
+    {
+      u8Tone=1;
+    }
+    if(u8Tone==0 && u8Sign1==2)
+    {
+      u8Tone=8;
+    }
+    
+    if(u8Sign==1)
+    {
+      LedOn(RED);
+      LedOff(BLUE);
+      LedOff(GREEN);
+      PWMAudioSetFrequency(BUZZER1, 500);
+      PWMAudioOn(BUZZER1);
+    }
+  }
+  
+  if(u8Menu==2)
+  {
+    if(u8Print==0)
+    {
+      LCDCommand(LCD_CLEAR_CMD);
+      DebugPrintf(au8Message);
+      u8Print=1;
+    }
+    
+    if(G_u8DebugScanfCharCount==1)
+    {
+      if(G_au8DebugScanfBuffer[0]==0x0D)
+      {
+        if(bLine1==TRUE)
+        {
+          u32Number1=20;
+        }
+        if(bLine1==FALSE)
+        {
+          u32Number2=20;
+        }
+        u8CharCount=DebugScanf(G_au8DebugScanfBuffer);
+        u8Print=1;
+      }
+      
+      if(bLine1==TRUE)
+      {
+        LCDMessage(LINE1_START_ADDR+u32Number1,G_au8DebugScanfBuffer);
+        u8CharCount=DebugScanf(G_au8DebugScanfBuffer);
+        u32Number1++;
+      }
+      if(bLine1==FALSE)
+      {
+        LCDMessage(LINE2_START_ADDR+u32Number2,G_au8DebugScanfBuffer);
+        u8CharCount=DebugScanf(G_au8DebugScanfBuffer);
+        u32Number2++;
+      }
+      
+      if(u32Number1>20)
+      {
+        u32Number1=0;
+        u32Number2=0;
+        u8Print=1;
+        bLine1=FALSE; 
+        
+      }
+      if(u32Number2>20)
+      {
+        u32Number1=0;
+        u32Number2=0;
+        u8Print=1;
+        bLine1=TRUE;
+      }
+    }
+  }
 
 } /* end UserApp1SM_Idle() */
     
