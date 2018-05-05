@@ -466,7 +466,7 @@ counter must be set at 1280. */
 0: No effect
 1: Pin is controlled by PIO
 */
-#define PIOA_PER_INIT (u32)0x84030007
+#define PIOA_PER_INIT (u32)0x84036007
 /* 
     31 [1] PA_31_HEARTBEAT PIO control enabled
     30 [0] PA_30_AN_DEMO PIO control not enabled
@@ -489,8 +489,8 @@ counter must be set at 1280. */
     16 [1] PA_16_BLADE_CS PIO control enabled
 
     15 [0] PA_15_BLADE_SCK PIO control not enabled
-    14 [0] PA_14_BLADE_MOSI PIO control not enabled
-    13 [0] PA_13_BLADE_MISO PIO control not enabled
+    14 [1] PA_14_BLADE_MOSI PIO control  enabled
+    13 [1] PA_13_BLADE_MISO PIO control  enabled
     12 [0] PA_12_BLADE_UPOMI PIO control not enabled
 
     11 [0] PA_11_BLADE_UPIMO PIO control not enabled
@@ -557,7 +557,7 @@ counter must be set at 1280. */
 0: No effect
 1: Pin is controlled by corresponding peripheral
 */
-#define PIOA_PDR_INIT (u32)0x7BFCFFF8
+#define PIOA_PDR_INIT (u32)0x7BFC9FF8
 /* 
     31 [0] PA_31_HEARTBEAT not controlled by peripheral
     30 [1] PA_30_AN_DEMO controlled by peripheral
@@ -580,8 +580,8 @@ counter must be set at 1280. */
     16 [0] PA_16_BLADE_CS not controlled by peripheral
 
     15 [1] PA_15_BLADE_SCK controlled by peripheral
-    14 [1] PA_14_BLADE_MOSI controlled by peripheral
-    13 [1] PA_13_BLADE_MISO controlled by peripheral
+    14 [0] PA_14_BLADE_MOSI controlled by peripheral
+    13 [0] PA_13_BLADE_MISO controlled by peripheral
     12 [1] PA_12_BLADE_UPOMI controlled by peripheral
 
     11 [1] PA_11_BLADE_UPIMO controlled by peripheral
@@ -648,7 +648,7 @@ Configures the pin as an output or input.
 0: No effect
 1: Enables the output on the I/O line
 */
-#define PIOA_OER_INIT (u32)0xBF55D7F9
+#define PIOA_OER_INIT (u32)0xBF55F7F9
 /* 
     31 [1] PA_31_HEARTBEAT output enabled
     30 [0] PA_30_AN_DEMO input
@@ -672,7 +672,7 @@ Configures the pin as an output or input.
 
     15 [1] PA_15_BLADE_SCK output enabled
     14 [1] PA_14_BLADE_MOSI output enabled
-    13 [0] PA_13_BLADE_MISO input
+    13 [1] PA_13_BLADE_MISO output
     12 [1] PA_12_BLADE_UPOMI output enabled
 
     11 [0] PA_11_BLADE_UPIMO  input
@@ -738,7 +738,7 @@ Configures the pin as an output or input.
 0: No effect
 1: Disables the output on the I/O line.
 */
-#define PIOA_ODR_INIT (u32)0x40AA2806
+#define PIOA_ODR_INIT (u32)0x40AA0806
 /* 
     31 [0] PA_31_HEARTBEAT output 
     30 [1] PA_30_AN_DEMO input
@@ -762,7 +762,7 @@ Configures the pin as an output or input.
 
     15 [0] PA_15_BLADE_SCK output 
     14 [0] PA_14_BLADE_MOSI output 
-    13 [1] PA_13_BLADE_MISO input
+    13 [0] PA_13_BLADE_MISO output
     12 [0] PA_12_BLADE_UPOMI output 
 
     11 [1] PA_11_BLADE_UPIMO input

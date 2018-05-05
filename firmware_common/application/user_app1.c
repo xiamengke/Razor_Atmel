@@ -136,7 +136,38 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-
+  static u32 u32Machine;
+  static u32 u32TimeCounter;
+  
+  u32Machine = AT91C_BASE_PIOA->PIO_PDSR & PA_09_I2C_SDA;
+  if(u32Machine == 0)
+  {
+    u32TimeCounter++;
+    if(u32TimeCounter<=500)
+    {
+      PWMAudioSetFrequency(BUZZER1,785);
+      PWMAudioOn(BUZZER1);
+      AT91C_BASE_PIOA->PIO_SODR = PA_14_BLADE_MOSI;
+      AT91C_BASE_PIOA->PIO_CODR = PA_13_BLADE_MISO;
+    }
+    if(u32TimeCounter>500)
+    {
+      PWMAudioSetFrequency(BUZZER1,1500);
+      PWMAudioOn(BUZZER1);
+      AT91C_BASE_PIOA->PIO_SODR = PA_13_BLADE_MISO;
+      AT91C_BASE_PIOA->PIO_CODR = PA_14_BLADE_MOSI;
+    }
+    if(u32TimeCounter>1000)
+    {
+      u32TimeCounter = 0;
+    }
+  }
+  else
+  {
+    PWMAudioOff(BUZZER1);
+    AT91C_BASE_PIOA->PIO_CODR = PA_14_BLADE_MOSI;
+    AT91C_BASE_PIOA->PIO_CODR = PA_13_BLADE_MISO;
+  }
 } /* end UserApp1SM_Idle() */
     
 

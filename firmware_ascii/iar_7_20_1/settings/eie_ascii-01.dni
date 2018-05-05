@@ -9,7 +9,7 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=-233304312
+Checksum=298211676
 [Exceptions]
 StopOnUncaught=_ 0
 StopOnThrow=_ 0
@@ -35,7 +35,7 @@ LogFile=_ ""
 Enabled=0
 [DriverProfiling]
 Enabled=0
-Mode=1
+Mode=0
 Graph=0
 Symbiont=0
 Exclusions=
