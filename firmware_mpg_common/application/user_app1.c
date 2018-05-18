@@ -68,6 +68,8 @@ static u32 UserApp1_u32Timeout;                        /* Timeout counter used a
 static AntAssignChannelInfoType UserApp1_sChannelInfo; /* ANT setup parameters */
 
 static u8 UserApp1_au8MessageFail[] = "\n\r***ANT channel setup failed***\n\n\r";
+static u8 au8TestNumber[10] = {0,0,0,0,0,0,0,0,0,0};
+static bool bChoose = TRUE;
 
 /**********************************************************************************************************************
 Function Definitions
@@ -95,20 +97,11 @@ Promises:
 */
 void UserApp1Initialize(void)
 {
-  u8 au8WelcomeMessage[] = "ANT Master";
-
-  /* Write a weclome message on the LCD */
-#if EIE1
-  /* Set a message up on the LCD. Delay is required to let the clear command send. */
+  u8 au8WelcomeMessage[] = "Welcome";
+  u8 ANTHR_NETWORK_KEY[8] = {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45};
+  
   LCDCommand(LCD_CLEAR_CMD);
-  for(u32 i = 0; i < 10000; i++);
-  LCDMessage(LINE1_START_ADDR, au8WelcomeMessage);
-#endif /* EIE1 */
-  
-#if 0 // untested for MPG2
-  
-#endif /* MPG2 */
-
+  LCDMessage(LINE1_START_ADDR ,au8WelcomeMessage );
  /* Configure ANT for this application */
   UserApp1_sChannelInfo.AntChannel          = ANT_CHANNEL_USERAPP;
   UserApp1_sChannelInfo.AntChannelType      = ANT_CHANNEL_TYPE_USERAPP;
@@ -125,7 +118,7 @@ void UserApp1Initialize(void)
   UserApp1_sChannelInfo.AntNetwork = ANT_NETWORK_DEFAULT;
   for(u8 i = 0; i < ANT_NETWORK_NUMBER_BYTES; i++)
   {
-    UserApp1_sChannelInfo.AntNetworkKey[i] = ANT_DEFAULT_NETWORK_KEY;
+    UserApp1_sChannelInfo.AntNetworkKey[i] = ANTHR_NETWORK_KEY[i];
   }
   
   /* Attempt to queue the ANT channel setup */
@@ -182,7 +175,7 @@ static void UserApp1SM_AntChannelAssign()
     /* Channel assignment is successful, so open channel and
     proceed to Idle state */
     AntOpenChannelNumber(ANT_CHANNEL_USERAPP);
-    UserApp1_StateMachine = UserApp1SM_Idle;
+    UserApp1_StateMachine = UserApp1SM_RealTimeShow;
   }
   
   /* Watch for time out */
@@ -196,77 +189,236 @@ static void UserApp1SM_AntChannelAssign()
 
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Wait for ??? */
-static void UserApp1SM_Idle(void)
+
+
+static void UserApp1SM_RealTimeShow(void)
 {
-  static u8 au8TestMessage[] = {0, 0, 0, 0, 0xA5, 0, 0, 0};
-  u8 au8DataContent[] = "xxxxxxxxxxxxxxxx";
+  u8 u8Hint[] = "HR:";
+  u8 u8Hint1[] = "B0:Function";
+  static u8 u8HR = 55;
+  static bool bOpen = FALSE;
+  static u32 u32TimeCounter = 0;
+  static u8 u8HRNumber = 0;
   
-  /* Check all the buttons and update au8TestMessage according to the button state */ 
-  au8TestMessage[0] = 0x00;
-  if( IsButtonPressed(BUTTON0) )
+  u32TimeCounter++;
+  
+  if(u32TimeCounter == 2000)
   {
-    au8TestMessage[0] = 0xff;
+    LCDCommand(LCD_CLEAR_CMD);
+    LCDMessage(LINE1_START_ADDR ,u8Hint);
+    LCDMessage(LINE2_START_ADDR ,u8Hint1);
   }
   
-  au8TestMessage[1] = 0x00;
-  if( IsButtonPressed(BUTTON1) )
+  if(AntRadioStatusChannel(ANT_CHANNEL_USERAPP) == ANT_OPEN)
   {
-    au8TestMessage[1] = 0xff;
+    bOpen = TRUE;
+    LedOn(GREEN);
   }
-
-#ifdef EIE1
-  au8TestMessage[2] = 0x00;
-  if( IsButtonPressed(BUTTON2) )
-  {
-    au8TestMessage[2] = 0xff;
-  }
-
-  au8TestMessage[3] = 0x00;
-  if( IsButtonPressed(BUTTON3) )
-  {
-    au8TestMessage[3] = 0xff;
-  }
-#endif /* EIE1 */
   
-  if( AntReadAppMessageBuffer() )
+  if(AntRadioStatusChannel(ANT_CHANNEL_USERAPP) != ANT_OPEN)
   {
-     /* New message from ANT task: check what it is */
-    if(G_eAntApiCurrentMessageClass == ANT_DATA)
+    LedOff(GREEN);
+  }
+  
+  if(bOpen)
+  {
+    if( AntReadAppMessageBuffer())
     {
-      /* We got some data: parse it into au8DataContent[] */
-      for(u8 i = 0; i < ANT_DATA_BYTES; i++)
+      if(G_eAntApiCurrentMessageClass == ANT_DATA )
       {
-        au8DataContent[2 * i]     = HexToASCIICharUpper(G_au8AntApiCurrentMessageBytes[i] / 16);
-        au8DataContent[2 * i + 1] = HexToASCIICharUpper(G_au8AntApiCurrentMessageBytes[i] % 16);
-      }
-
-#ifdef EIE1
-      LCDMessage(LINE2_START_ADDR, au8DataContent);
-#endif /* EIE1 */
-      
-#ifdef MPG2
-#endif /* MPG2 */
-      
-    }
-    else if(G_eAntApiCurrentMessageClass == ANT_TICK)
-    {
-     /* Update and queue the new message data */
-      au8TestMessage[7]++;
-      if(au8TestMessage[7] == 0)
-      {
-        au8TestMessage[6]++;
-        if(au8TestMessage[6] == 0)
+        static u8 i=0;
+        if(i<=9)
         {
-          au8TestMessage[5]++;
+          if(u8HRNumber != G_au8AntApiCurrentMessageBytes[7])
+          {
+            u8HRNumber = G_au8AntApiCurrentMessageBytes[7];
+            au8TestNumber[i] = u8HRNumber;
+            i++;
+          }
         }
+      
+        if(i>9)
+        {
+          i=0;
+        }
+        u8HR = HexToDec(G_au8AntApiCurrentMessageBytes[7]);
+        ShowRate();
+        LedOn(BLUE);
       }
-      AntQueueBroadcastMessage(ANT_CHANNEL_USERAPP, au8TestMessage);
     }
-  } /* end AntReadData() */
+  }
+  if(u8HR<=50 )
+  {
+    LedOn(RED);
+  }
   
-} /* end UserApp1SM_Idle() */
+  if (WasButtonPressed(BUTTON0))
+  {
+    ButtonAcknowledge(BUTTON0);
+    UserApp1_StateMachine = UserApp1SM_Function;
+  }
+}
 
+static void UserApp1SM_Function(void)
+{
+  u8 u8Function1[] = "B1:Max&Min";
+  u8 u8Function2[] = "B2:Average";
+  u8 u8Function3[] = "B3:HR";
+  ////
+  
+  if(bChoose)
+  {
+    LCDCommand(LCD_CLEAR_CMD);
+    LCDMessage(LINE1_START_ADDR ,u8Function1);
+    LCDMessage(LINE2_START_ADDR ,u8Function2);
+    LCDMessage(LINE2_START_ADDR+11 ,u8Function3);
+    bChoose = FALSE;
+  }
+  if (WasButtonPressed(BUTTON1))
+  {
+    ButtonAcknowledge(BUTTON1);
+    UserApp1_StateMachine = UserApp1SM_MaxMin;
+  }
+  if (WasButtonPressed(BUTTON2))
+  {
+    ButtonAcknowledge(BUTTON2);
+    UserApp1_StateMachine = UserApp1SM_Average;
+  }
+  if (WasButtonPressed(BUTTON3))
+  {
+    ButtonAcknowledge(BUTTON3);
+    UserApp1_StateMachine = UserApp1SM_RealTimeShow;
+  }
+}
 
+static void UserApp1SM_MaxMin(void)
+{
+  static u8 au8Max[3]={0,0,0};
+  static u8 au8Min[3]={0,0,0};
+  static u8 u8Max = 0;
+  static u8 u8Min = 1000;
+  u8 au8UserAppMax[] = "Max:";
+  u8 au8UserAppMin[] = "Min:";
+  u8 au8Function[] = "B0: Function";
+  static u8 u8Compare = 0;/////////
+  
+  static u8 j = 0;
+  if(u8Compare == 0)
+  {
+    
+    if(au8TestNumber[j] != 0)
+    {
+      if(u8Max<=au8TestNumber[j])
+      {
+        u8Max = HexToDec(au8TestNumber[j]);
+        au8Max[0] = (u8Max/100) + '0';
+        au8Max[1] = ( (u8Max%100)/10 ) + '0';
+        au8Max[2] = ( (u8Max%100)%10 ) + '0'; 
+      }
+      if(u8Min>=au8TestNumber[j])
+      {
+        u8Min = HexToDec(au8TestNumber[j]);
+        au8Min[0] = (u8Min/100) + '0';
+        au8Min[1] = ( (u8Min%100)/10 ) + '0';
+        au8Min[2] = ( (u8Min%100)%10 ) + '0'; 
+      }
+      j++;
+    }
+    if(au8TestNumber[j] == 0)
+    {
+      u8Compare = 1;
+    } 
+  }
+  if(u8Compare == 1)
+  {
+    u8Compare = 2;
+    LCDCommand(LCD_CLEAR_CMD);
+    LCDMessage(LINE1_START_ADDR ,au8UserAppMax);
+    LCDMessage(LINE1_START_ADDR + 5 ,au8Max);
+    LCDMessage(LINE2_START_ADDR ,au8UserAppMin);
+    LCDMessage(LINE2_START_ADDR + 5 ,au8Min);
+    LCDMessage(LINE2_START_ADDR + 9 ,au8Function);
+  }
+  
+  if (WasButtonPressed(BUTTON0))
+  {
+    ButtonAcknowledge(BUTTON0);
+    bChoose = TRUE;
+    UserApp1_StateMachine = UserApp1SM_Function;
+  }
+}
+static void UserApp1SM_Average(void)
+{
+  static u32 u32Sum;
+  static u8 u8Number;
+  static u8 u8Average;
+  static u8 au8AverageNumber[3]={0,0,0};
+  static u8 au8Average[] = "Average:";
+  static u8 u8Show = 0;
+  
+  static u8 i;
+  for(;i<=9 ; i++)
+  {
+    u32Sum = u32Sum+au8TestNumber[i];
+  }
+  static u8 j =0;
+  if(au8TestNumber[j] != 0)
+  {
+    u8Number++;
+    j++;
+  }
+  if(au8TestNumber[j] == 0)
+  {
+    u8Average = u32Sum / u8Number;
+    au8AverageNumber[2] = u8Average;
+    u8Average = HexToDec(au8AverageNumber[2]);
+    au8AverageNumber[0] = (u8Average/100) + '0';
+    au8AverageNumber[1] = ( (u8Average%100)/10 ) + '0';
+    au8AverageNumber[2] = ( (u8Average%100)%10 ) + '0'; 
+  }
+  if(u8Show == 0)
+  {
+    LCDCommand(LCD_CLEAR_CMD);
+    
+    u8Show =1;
+  }LCDMessage(LINE1_START_ADDR ,au8Average);
+    LCDMessage(LINE1_START_ADDR+9 ,au8AverageNumber);
+}
+
+static void ShowRate(void)
+{
+  LCDCommand(LCD_CLEAR_CMD);
+  u8 au8ShowMessage[] = "HR:";
+   u8 u8Hint1[] = "B0:Function";
+  u8 u8RateDec = 0;
+  u8 au8Show[3] = {0,0,0};
+  
+  u8RateDec = HexToDec(G_au8AntApiCurrentMessageBytes[7]);
+  au8Show[0] = (u8RateDec/100) + '0';
+  au8Show[1] = ( (u8RateDec%100)/10 ) + '0';
+  au8Show[2] = ( (u8RateDec%100)%10 ) + '0'; 
+  
+  if (au8Show[0] == '0')
+  {
+    au8Show[0] = ' ';
+  }
+  
+  LCDMessage(LINE1_START_ADDR, au8ShowMessage);
+  LCDMessage(LINE1_START_ADDR + 5, au8Show);
+  LCDMessage(LINE2_START_ADDR ,u8Hint1);
+  return;
+}
+
+u8 HexToDec(u8 u8Char_)
+{
+  u8 au8Change[2] = {0,0};
+  u8 u8ReturnValue = 0;
+  
+  au8Change[0] = (u8Char_ /16) * 16;
+  au8Change[1] = u8Char_ %16;
+  u8ReturnValue = au8Change[0] + au8Change[1];
+  return(u8ReturnValue);
+}
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error (for now, do nothing) */
 static void UserApp1SM_Error(void)          
