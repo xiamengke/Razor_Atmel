@@ -69,7 +69,10 @@ static AntAssignChannelInfoType UserApp1_sChannelInfo; /* ANT setup parameters *
 
 static u8 UserApp1_au8MessageFail[] = "\n\r***ANT channel setup failed***\n\n\r";
 static u8 au8TestNumber[10] = {0,0,0,0,0,0,0,0,0,0};
-static bool bChoose = TRUE;
+static bool bChoose = TRUE;                            /*Function Recover*/
+static u8 u8Compare = 0;                              /*MaxMin Recover*/
+static u8 u8Show = 0;                                /*Average Recover*/
+static u32 u32TimeCounter = 0;                       /*RealTimeShow Recover*/
 
 /**********************************************************************************************************************
 Function Definitions
@@ -190,14 +193,13 @@ static void UserApp1SM_AntChannelAssign()
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Wait for ??? */
 
-
+//Show RealTime HR on LCD
 static void UserApp1SM_RealTimeShow(void)
 {
   u8 u8Hint[] = "HR:";
   u8 u8Hint1[] = "B0:Function";
   static u8 u8HR = 55;
   static bool bOpen = FALSE;
-  static u32 u32TimeCounter = 0;
   static u8 u8HRNumber = 0;
   
   u32TimeCounter++;
@@ -212,7 +214,7 @@ static void UserApp1SM_RealTimeShow(void)
   if(AntRadioStatusChannel(ANT_CHANNEL_USERAPP) == ANT_OPEN)
   {
     bOpen = TRUE;
-    LedOn(GREEN);
+    LedOn(GREEN);  //Channel Open
   }
   
   if(AntRadioStatusChannel(ANT_CHANNEL_USERAPP) != ANT_OPEN)
@@ -227,6 +229,7 @@ static void UserApp1SM_RealTimeShow(void)
       if(G_eAntApiCurrentMessageClass == ANT_DATA )
       {
         static u8 i=0;
+        //Put HR in au8TestNumber
         if(i<=9)
         {
           if(u8HRNumber != G_au8AntApiCurrentMessageBytes[7])
@@ -243,15 +246,21 @@ static void UserApp1SM_RealTimeShow(void)
         }
         u8HR = HexToDec(G_au8AntApiCurrentMessageBytes[7]);
         ShowRate();
+        //Receive data
         LedOn(BLUE);
       }
     }
   }
-  if(u8HR<=50 )
+  //HR is abnormality
+  if(u8HR<=50 || u8HR>=120)
   {
     LedOn(RED);
   }
-  
+  if(50<u8HR && 120>u8HR)
+  {
+    LedOff(RED);
+  }
+  //Function
   if (WasButtonPressed(BUTTON0))
   {
     ButtonAcknowledge(BUTTON0);
@@ -259,12 +268,13 @@ static void UserApp1SM_RealTimeShow(void)
   }
 }
 
+
+//You can choose Function
 static void UserApp1SM_Function(void)
 {
   u8 u8Function1[] = "B1:Max&Min";
   u8 u8Function2[] = "B2:Average";
   u8 u8Function3[] = "B3:HR";
-  ////
   
   if(bChoose)
   {
@@ -274,23 +284,30 @@ static void UserApp1SM_Function(void)
     LCDMessage(LINE2_START_ADDR+11 ,u8Function3);
     bChoose = FALSE;
   }
+  //MaxMin
   if (WasButtonPressed(BUTTON1))
   {
     ButtonAcknowledge(BUTTON1);
-    UserApp1_StateMachine = UserApp1SM_MaxMin;
+    u8Compare = 0;
+    UserApp1_StateMachine = UserApp1SM_MaxMin; 
   }
+  //Average
   if (WasButtonPressed(BUTTON2))
   {
     ButtonAcknowledge(BUTTON2);
+    u8Show = 0;
     UserApp1_StateMachine = UserApp1SM_Average;
   }
+  //RealTimeShow
   if (WasButtonPressed(BUTTON3))
   {
     ButtonAcknowledge(BUTTON3);
+    u32TimeCounter = 0;
     UserApp1_StateMachine = UserApp1SM_RealTimeShow;
   }
 }
 
+//Your HR Max and Min (before)
 static void UserApp1SM_MaxMin(void)
 {
   static u8 au8Max[3]={0,0,0};
@@ -300,17 +317,22 @@ static void UserApp1SM_MaxMin(void)
   u8 au8UserAppMax[] = "Max:";
   u8 au8UserAppMin[] = "Min:";
   u8 au8Function[] = "B0: Function";
-  static u8 u8Compare = 0;/////////
   
   static u8 j = 0;
   if(u8Compare == 0)
   {
-    
+    j = 0;
+    u8Compare++;
+  }
+    if(u8Compare == 1)
+    {
     if(au8TestNumber[j] != 0)
     {
+      //Compare au8TestNuber[j]
       if(u8Max<=au8TestNumber[j])
       {
         u8Max = HexToDec(au8TestNumber[j]);
+        //Show Max on LCD
         au8Max[0] = (u8Max/100) + '0';
         au8Max[1] = ( (u8Max%100)/10 ) + '0';
         au8Max[2] = ( (u8Max%100)%10 ) + '0'; 
@@ -318,20 +340,22 @@ static void UserApp1SM_MaxMin(void)
       if(u8Min>=au8TestNumber[j])
       {
         u8Min = HexToDec(au8TestNumber[j]);
+        //Show Min on LCD
         au8Min[0] = (u8Min/100) + '0';
         au8Min[1] = ( (u8Min%100)/10 ) + '0';
         au8Min[2] = ( (u8Min%100)%10 ) + '0'; 
       }
       j++;
     }
-    if(au8TestNumber[j] == 0)
+    if(au8TestNumber[j] == 0 || j>9)
     {
-      u8Compare = 1;
+      u8Compare = 2;
     } 
   }
-  if(u8Compare == 1)
+  //Finish Compare
+  if(u8Compare == 2)
   {
-    u8Compare = 2;
+    u8Compare = 3;
     LCDCommand(LCD_CLEAR_CMD);
     LCDMessage(LINE1_START_ADDR ,au8UserAppMax);
     LCDMessage(LINE1_START_ADDR + 5 ,au8Max);
@@ -339,7 +363,7 @@ static void UserApp1SM_MaxMin(void)
     LCDMessage(LINE2_START_ADDR + 5 ,au8Min);
     LCDMessage(LINE2_START_ADDR + 9 ,au8Function);
   }
-  
+  //Return
   if (WasButtonPressed(BUTTON0))
   {
     ButtonAcknowledge(BUTTON0);
@@ -347,6 +371,8 @@ static void UserApp1SM_MaxMin(void)
     UserApp1_StateMachine = UserApp1SM_Function;
   }
 }
+
+//The average of your HR(before)
 static void UserApp1SM_Average(void)
 {
   static u32 u32Sum;
@@ -354,20 +380,29 @@ static void UserApp1SM_Average(void)
   static u8 u8Average;
   static u8 au8AverageNumber[3]={0,0,0};
   static u8 au8Average[] = "Average:";
-  static u8 u8Show = 0;
+  u8 au8Function[] = "B0: Function";
+  
   
   static u8 i;
+  static u8 j =0;
+  if(u8Show == 0)
+  {
+    i = 0;
+    j = 0;
+    u8Show++;
+  }
+  //Sum
   for(;i<=9 ; i++)
   {
     u32Sum = u32Sum+au8TestNumber[i];
   }
-  static u8 j =0;
+  
   if(au8TestNumber[j] != 0)
   {
     u8Number++;
     j++;
   }
-  if(au8TestNumber[j] == 0)
+  if(au8TestNumber[j] == 0 || j>9)
   {
     u8Average = u32Sum / u8Number;
     au8AverageNumber[2] = u8Average;
@@ -376,14 +411,23 @@ static void UserApp1SM_Average(void)
     au8AverageNumber[1] = ( (u8Average%100)/10 ) + '0';
     au8AverageNumber[2] = ( (u8Average%100)%10 ) + '0'; 
   }
-  if(u8Show == 0)
+  if(u8Show == 1)
   {
+    u8Show =2;
     LCDCommand(LCD_CLEAR_CMD);
-    
-    u8Show =1;
-  }LCDMessage(LINE1_START_ADDR ,au8Average);
+    LCDMessage(LINE1_START_ADDR ,au8Average);
     LCDMessage(LINE1_START_ADDR+9 ,au8AverageNumber);
+    LCDMessage(LINE2_START_ADDR ,au8Function);
+  }
+  //Return
+  if (WasButtonPressed(BUTTON0))
+  {
+    ButtonAcknowledge(BUTTON0);
+    bChoose = TRUE;
+    UserApp1_StateMachine = UserApp1SM_Function;
+  }
 }
+
 
 static void ShowRate(void)
 {
