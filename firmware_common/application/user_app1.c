@@ -57,7 +57,16 @@ extern volatile u32 G_u32SystemTime1s;                 /* From board-specific so
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "UserApp1_" and be declared as static.
 ***********************************************************************************************************************/
-static fnCode_type UserApp1_StateMachine;            /* The state machine function pointer */
+static fnCode_type UserApp1_StateMachine; 
+static u8 u8States = 2;
+static u8 u8Array = 5;
+static u8 au8Message1[]="MIC";
+static u8 au8Message2[]="Phone";
+static u8 au8Message3[]="MUTE";
+static u8 au8Array[1]="";
+     
+
+/* The state machine function pointer */
 //static u32 UserApp1_u32Timeout;                      /* Timeout counter used across states */
 
 
@@ -86,8 +95,11 @@ Promises:
   - 
 */
 void UserApp1Initialize(void)
-{
- 
+{  
+   AT91C_BASE_PIOA->PIO_CODR = PA_14_BLADE_MOSI;
+   AT91C_BASE_PIOA->PIO_CODR = PA_11_BLADE_UPIMO;
+   AT91C_BASE_PIOB->PIO_CODR = PB_04_BLADE_AN1;
+
   /* If good initialization, set state to Idle */
   if( 1 )
   {
@@ -136,12 +148,202 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
+     
+   if(WasButtonPressed(BUTTON3))
+   {
+     ButtonAcknowledge(BUTTON3);
+     u32 g;
+     for(g=0;g<=2000;g++)
+     {
+        LedOn(RED);
+     }
+        LedOff(RED);
+     UserApp1_StateMachine = UserApp1SM_Pattern;
+     
+  }
+    
+    if(WasButtonPressed(BUTTON0))
+   {
+      ButtonAcknowledge(BUTTON0);
+       u32 g;
+       for(g=0;g<=2000;g++)
+         {
+           LedOn(RED);
+         }
+           LedOff(RED);
+       UserApp1_StateMachine = UserApp1SM_Increase;
+      
+  } 
+    
+     if(WasButtonPressed(BUTTON1))
+   {
+     ButtonAcknowledge(BUTTON1); 
+     u32 g;
+     for(g=0;g<=2000;g++)
+   {
+      LedOn(RED);
+   }
+      LedOff(RED);
+      UserApp1_StateMachine = UserApp1SM_Reduction;
+   }
+     
+    if(WasButtonPressed(BUTTON2))
+   {
+      ButtonAcknowledge(BUTTON2);
+      LedOn(WHITE);
+      
+      UserApp1_StateMachine = UserApp1SM_ADC;
+      
+   }
 
 } /* end UserApp1SM_Idle() */
+ static void UserApp1SM_Pattern(void)
+{
+  
+  if(u8States < 4  )
+     {
+        u8States++;
+     }
+     if(u8States == 4)
+     {
+       u8States = 1;
+     }
     
+     
+       if(u8States == 1)
+       {
+         AT91C_BASE_PIOA->PIO_SODR = PA_14_BLADE_MOSI;
+         AT91C_BASE_PIOA->PIO_CODR = PA_11_BLADE_UPIMO;
+         AT91C_BASE_PIOB->PIO_CODR = PB_04_BLADE_AN1;
+         //MIC PATTERN
+         LedOn(BLUE);
+         LedOff(GREEN);
+         LedOff(PURPLE);
+         //THE BLUE LIGHES
+         LCDCommand(LCD_CLEAR_CMD);
+         LCDMessage(LINE1_START_ADDR, au8Message1);
+         //LCD SHOW
+      }
+       if(u8States == 2)
+       {
+          AT91C_BASE_PIOA->PIO_CODR = PA_14_BLADE_MOSI;
+          AT91C_BASE_PIOA->PIO_CODR = PA_11_BLADE_UPIMO;
+          AT91C_BASE_PIOB->PIO_CODR = PB_04_BLADE_AN1;
+          //Phone PATTERN
+          LedOff(BLUE);
+          LedOn(GREEN);
+          LedOff(PURPLE);
+          //THE GREEN LIGHTS
+          LCDCommand(LCD_CLEAR_CMD);
+          LCDMessage(LINE1_START_ADDR, au8Message2);
+          //LCD SHOW
+          
+       }
+       if(u8States == 3)
+       {
+          AT91C_BASE_PIOA->PIO_CODR = PA_14_BLADE_MOSI;
+          AT91C_BASE_PIOA->PIO_CODR = PA_11_BLADE_UPIMO;
+          AT91C_BASE_PIOB->PIO_SODR = PB_04_BLADE_AN1;
+          //MUTE PATTERN
+          LedOff(BLUE);
+          LedOff(GREEN);
+          LedOn(PURPLE);
+          //THE PURPLE LIGHTS
+          LCDCommand(LCD_CLEAR_CMD);
+          LCDMessage(LINE1_START_ADDR, au8Message3);
+          //LCD SHOW
+       }
+         UserApp1_StateMachine = UserApp1SM_Idle;
+}
 
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
+static void UserApp1SM_Increase(void)
+{
+      au8Array[0] = u8Array + 48;
+      u8 i;
+      u16 j;
+      AT91C_BASE_PIOA->PIO_SODR = PA_13_BLADE_MISO;
+      AT91C_BASE_PIOA->PIO_CODR = PA_16_BLADE_CS;
+      for(i=0;i<=20;i++)
+      {
+        AT91C_BASE_PIOA->PIO_SODR = PA_12_BLADE_UPOMI;
+        for(j=0;j<=100;j++)
+        {
+        }
+        AT91C_BASE_PIOA->PIO_CODR = PA_12_BLADE_UPOMI;
+      }
+      //VOLUME INCREASE
+       if(u8Array < 9)
+       {
+        u8Array++;
+       }
+       if(u8Array > 9)
+       {
+        u8Array = 9;
+       }
+        LCDCommand(LCD_CLEAR_CMD);
+        LCDMessage(LINE2_START_ADDR, au8Array);
+        LCDMessage(LINE1_START_ADDR, au8Message2);
+        //LCD SHOW
+        UserApp1_StateMachine = UserApp1SM_Idle;
+}
+
+static void UserApp1SM_Reduction(void)
+{    
+     au8Array[0] = u8Array + 48;
+     u8 i;
+     u16 j;
+     AT91C_BASE_PIOA->PIO_CODR = PA_13_BLADE_MISO;
+     AT91C_BASE_PIOA->PIO_CODR = PA_16_BLADE_CS;
+     for(i = 0;i<=20;i++)
+    {
+       AT91C_BASE_PIOA->PIO_SODR = PA_12_BLADE_UPOMI;        
+       for(j=0;j<=100;j++)
+       {
+       }
+       AT91C_BASE_PIOA->PIO_CODR = PA_12_BLADE_UPOMI;
+    }
+      //VOLUME REDUCTION
+     if(u8Array > 1)
+      {
+       u8Array--;
+      }
+      if(u8Array < 1)
+      {
+        u8Array = 1;
+      }
+      LCDCommand(LCD_CLEAR_CMD);
+      LCDMessage(LINE2_START_ADDR, au8Array);
+      LCDMessage(LINE1_START_ADDR, au8Message2);
+      //LCD SHOW
+      UserApp1_StateMachine = UserApp1SM_Idle;
+}
+
+static void UserApp1SM_ADC(void)
+{
+   static u32 u32Counter;
+   u32 g;
+   AT91C_BASE_PIOA->PIO_SODR = PA_11_BLADE_UPIMO;
+   AT91C_BASE_PIOA->PIO_SODR = PA_15_BLADE_SCK;
+   Adc12StartConversion(ADC12_CH2);
+   //OPEN CHANNEL
+   if(Adc12StartConversion(ADC12_CH2) ==TRUE)
+  {
+    u32Counter = AT91C_BASE_ADC12B->ADC12B_CDR[ADC12_CH2];
+    u32Counter = u32Counter/41;
+    u8Array = u32Counter/10;  
+   }
+   //AD TRANSITION
+   for(g=0;g<=2000;g++)
+   {
+     
+   }
+     
+   LedOff(WHITE);
+   AT91C_BASE_PIOA->PIO_CODR = PA_15_BLADE_SCK;
+   UserApp1_StateMachine = UserApp1SM_Idle;
+}
 static void UserApp1SM_Error(void)          
 {
   

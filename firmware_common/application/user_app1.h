@@ -56,7 +56,11 @@ State Machine Declarations
 ***********************************************************************************************************************/
 static void UserApp1SM_Idle(void);    
 
-static void UserApp1SM_Error(void);         
+static void UserApp1SM_Error(void); 
+static void UserApp1SM_Pattern(void);
+static void UserApp1SM_Increase(void);
+static void UserApp1SM_Reduction(void);
+static void UserApp1SM_ADC(void);
 
 
 #endif /* __USER_APP1_H */
