@@ -19,6 +19,7 @@ Header file for user_app1.c
 
 #ifndef __USER_APP1_H
 #define __USER_APP1_H
+  
 
 /**********************************************************************************************************************
 Type Definitions
@@ -28,7 +29,7 @@ Type Definitions
 /**********************************************************************************************************************
 Constants / Definitions
 **********************************************************************************************************************/
-
+#define COUNTER_LIMIT_MS (u32) 2000
 
 /**********************************************************************************************************************
 Function Declarations
@@ -58,6 +59,12 @@ static void UserApp1SM_Idle(void);
 
 static void UserApp1SM_Error(void);         
 
+void Line_Data(u8 k);
+void Hang_Data(u8 k);
+void Rolling(u8 k);
+
+
+void Delay(u8 n);
 
 #endif /* __USER_APP1_H */
 
